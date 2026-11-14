@@ -1,0 +1,49 @@
+diff --git a/Services/PaymentProcessor.cs b/Services/PaymentProcessor.cs
+new file mode 100644
+index 0000000..b2a1934
+--- /dev/null
++++ b/Services/PaymentProcessor.cs
+@@ -0,0 +1,45 @@
++using System;
++using System.Threading.Tasks;
++using Microsoft.Extensions.Logging;
++
++namespace FlexGcc.Services
++{
++    public class PaymentProcessor
++    {
++        private readonly ILogger<PaymentProcessor> _logger;
++        private readonly IPaymentGateway _gateway;
++        private readonly ICustomerRepository _customerRepo;
++
++        public PaymentProcessor(ILogger<PaymentProcessor> logger, IPaymentGateway gateway, ICustomerRepository customerRepo)
++        {
++            _logger = logger;
++            _gateway = gateway;
++            _customerRepo = customerRepo;
++        }
++
++        // BUG / RISK: Async void method cannot be awaited; unhandled exceptions crash process
++        public async void ProcessRecurringBilling(string customerId, decimal amount)
++        {
++            var customer = await _customerRepo.FindByIdAsync(customerId);
++            
++            // BUG: NullReferenceException if customer does not exist in database
++            string email = customer.BillingEmail.ToLower();
++            
++            if (amount = 0) // SYNTAX / LOGICAL BUG: Assignment '=' instead of comparison '=='
++            {
++                _logger.LogWarning("Zero amount detected");
++                return;
++            }
++
++            var result = await _gateway.ChargeAsync(customer.PaymentToken, amount);
++            if (!result.IsSuccess)
++            {
++                throw new PaymentFailedException(result.ErrorMessage);
++            }
++
++            _logger.LogInformation("Successfully billed {Email} for {Amount}", email, amount);
++        }
++    }
++}

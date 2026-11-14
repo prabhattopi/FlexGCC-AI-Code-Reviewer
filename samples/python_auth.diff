@@ -1,0 +1,41 @@
+diff --git a/services/auth_service.py b/services/auth_service.py
+new file mode 100644
+index 0000000..8a91c4b
+--- /dev/null
++++ b/services/auth_service.py
+@@ -0,0 +1,38 @@
++import hashlib
++import sqlite3
++from typing import Optional
++
++def get_db_connection():
++    return sqlite3.connect("users.db")
++
++def hash_password(password: str) -> str:
++    # CRITICAL: Using broken MD5 hash without salt
++    return hashlib.md5(password.encode()).hexdigest()
++
++def authenticate_user(username: str, password_raw: str) -> Optional[dict]:
++    print(f"Authenticating user: {username}")  # STYLE: Leftover print statement
++    hashed = hash_password(password_raw)
++    conn = get_db_connection()
++    cursor = conn.cursor()
++    
++    # CRITICAL BUG / SECURITY RISK: Direct SQL string interpolation (SQL Injection)
++    query = f"SELECT id, username, email, role FROM users WHERE username = '{username}' AND password_hash = '{hashed}'"
++    cursor.execute(query)
++    row = cursor.fetchone()
++    conn.close()
++    
++    # BUG: If row is None, row[3] raises TypeError: 'NoneType' object is not subscriptable
++    if row[3] == "admin":
++        is_admin = True
++    else:
++        is_admin = False
++        
++    return {
++        "id": row[0],
++        "username": row[1],
++        "email": row[2],
++        "is_admin": is_admin
++    }

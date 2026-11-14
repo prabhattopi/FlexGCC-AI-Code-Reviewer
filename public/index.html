@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DiffSensei | Autonomous AI Code Review Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+            },
+            surface: {
+              900: '#0b0f17',
+              800: '#111827',
+              750: '#172033',
+              700: '#1f293d',
+              600: '#374151',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    pre code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #111827;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #374151;
+      border-radius: 3px;
+    }
+    .pulse-dot {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .3; }
+    }
+  </style>
+</head>
+<body class="bg-surface-900 text-gray-100 min-h-screen font-sans antialiased flex flex-col">
+
+  <!-- Top Navigation Bar -->
+  <header class="border-b border-surface-700 bg-surface-800/90 backdrop-blur sticky top-0 z-50 px-6 py-3.5 flex items-center justify-between">
+    <div class="flex items-center space-x-3.5">
+      <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20 text-white font-bold text-xl">
+        ⚡
+      </div>
+      <div>
+        <div class="flex items-center space-x-2.5">
+          <h1 class="font-bold text-lg text-white tracking-tight">DiffSensei</h1>
+          <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">AI Agent</span>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
+            <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 pulse-dot"></span>
+            Gemini Flash
+          </span>
+        </div>
+        <p class="text-xs text-gray-400">Autonomous Git Diff Code Reviewer &bull; FlexGCC AI Engineer Evaluation</p>
+      </div>
+    </div>
+
+    <!-- Candidate Badge -->
+    <div class="flex items-center space-x-3 text-xs">
+      <div class="hidden sm:flex flex-col text-right">
+        <span class="font-semibold text-gray-200">Prabhat Ranjan Singh</span>
+        <span class="text-gray-400">AI Engineer (Full Stack, .NET / React)</span>
+      </div>
+      <a href="https://github.com/prabhattopi" target="_blank" class="px-3 py-1.5 rounded-lg bg-surface-750 hover:bg-surface-700 border border-surface-600 text-gray-300 hover:text-white transition flex items-center gap-1.5">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+        GitHub Profile
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Grid Workspace -->
+  <main class="flex-1 max-w-[1700px] w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- Left Column: Input & Controls (5 Cols) -->
+    <div class="lg:col-span-5 flex flex-col space-y-4">
+      
+      <!-- Preset Diffs Card -->
+      <div class="bg-surface-800 border border-surface-700 rounded-2xl p-5 shadow-sm">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-gray-400 mb-3 flex items-center justify-between">
+          <span>⚡ Select Sample Test Case</span>
+          <span class="text-xs font-normal text-blue-400">1-Click Load</span>
+        </h2>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <!-- Python Preset -->
+          <button onclick="loadSample('python')" id="btn-sample-python" class="sample-btn text-left p-3 rounded-xl border border-surface-600 bg-surface-750 hover:border-blue-500 hover:bg-surface-700 transition">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-bold text-amber-400">Python</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20 font-semibold">SQLi Bug</span>
+            </div>
+            <p class="text-xs text-gray-300 font-medium truncate">Auth Service</p>
+            <p class="text-[11px] text-gray-500 truncate mt-0.5">SQL Injection, MD5, NoneType</p>
+          </button>
+
+          <!-- React Preset -->
+          <button onclick="loadSample('react')" id="btn-sample-react" class="sample-btn text-left p-3 rounded-xl border border-surface-600 bg-surface-750 hover:border-blue-500 hover:bg-surface-700 transition">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-bold text-cyan-400">React 19</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 font-semibold">Leak & XSS</span>
+            </div>
+            <p class="text-xs text-gray-300 font-medium truncate">Metric Widget</p>
+            <p class="text-[11px] text-gray-500 truncate mt-0.5">setInterval leak, innerHTML</p>
+          </button>
+
+          <!-- .NET Preset -->
+          <button onclick="loadSample('dotnet')" id="btn-sample-dotnet" class="sample-btn text-left p-3 rounded-xl border border-surface-600 bg-surface-750 hover:border-blue-500 hover:bg-surface-700 transition">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-bold text-indigo-400">C# / .NET</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 font-semibold">Async Void</span>
+            </div>
+            <p class="text-xs text-gray-300 font-medium truncate">Payment Processor</p>
+            <p class="text-[11px] text-gray-500 truncate mt-0.5">async void, NullRef, '=' bug</p>
+          </button>
+        </div>
+      </div>
+
+      <!-- Diff Input Form -->
+      <div class="bg-surface-800 border border-surface-700 rounded-2xl p-5 flex-1 flex flex-col shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center space-x-2">
+            <button id="tab-diff" onclick="switchInputMode('diff')" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-600 text-white shadow">Git Diff / Patch</button>
+            <button id="tab-pr" onclick="switchInputMode('pr')" class="text-xs font-semibold px-3 py-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-surface-700 transition">GitHub PR URL</button>
+          </div>
+          <button onclick="clearInput()" class="text-xs text-gray-400 hover:text-gray-200">Clear</button>
+        </div>
+
+        <!-- PR URL Input Box -->
+        <div id="pr-input-container" class="hidden mb-3">
+          <label class="block text-xs font-semibold text-gray-400 mb-1.5">GitHub Pull Request URL</label>
+          <input type="text" id="pr-url-input" placeholder="https://github.com/owner/repo/pull/123" class="w-full bg-surface-900 border border-surface-600 rounded-xl px-3.5 py-2.5 text-xs text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500 font-mono" />
+        </div>
+
+        <!-- Raw Diff Textarea -->
+        <div id="diff-input-container" class="flex-1 flex flex-col min-h-[300px]">
+          <label class="block text-xs font-semibold text-gray-400 mb-1.5">Raw Git Diff Content (Paste or Load Preset)</label>
+          <textarea id="diff-text-input" placeholder="diff --git a/src/app.ts b/src/app.ts&#10;index 0000000..1234567 100644&#10;--- a/src/app.ts&#10;+++ b/src/app.ts&#10;@@ -1,5 +1,6 @@&#10;..." class="flex-1 w-full bg-surface-900 border border-surface-600 rounded-xl p-3.5 text-xs text-gray-200 placeholder-gray-500 font-mono focus:outline-none focus:border-blue-500 custom-scrollbar resize-none leading-relaxed"></textarea>
+        </div>
+
+        <!-- Custom Instructions (Optional) -->
+        <div class="mt-3">
+          <input type="text" id="custom-instructions" placeholder="Optional focus: e.g. 'Audit strictly for SQL injection and concurrency hazards'" class="w-full bg-surface-900 border border-surface-600 rounded-xl px-3.5 py-2 text-xs text-gray-200 placeholder-gray-500 focus:outline-none focus:border-blue-500" />
+        </div>
+
+        <!-- Action Button -->
+        <div class="mt-4">
+          <button id="btn-submit-review" onclick="triggerReview()" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm shadow-lg shadow-blue-600/30 transition flex items-center justify-center space-x-2">
+            <span id="btn-spinner" class="hidden">
+              <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            </span>
+            <span id="btn-label">⚡ Run Autonomous Code Review</span>
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Right Column: Agent Execution & Results Dashboard (7 Cols) -->
+    <div class="lg:col-span-7 flex flex-col space-y-4">
+
+      <!-- Live Agent Pipeline Telemetry Bar -->
+      <div class="bg-surface-800 border border-surface-700 rounded-2xl p-4 shadow-sm">
+        <div class="flex items-center justify-between mb-2.5">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">Agent Reasoning & Tool Orchestration</h3>
+          <span id="telemetry-status" class="text-xs text-gray-400 font-mono">Status: Ready</span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+          <div id="step-diff" class="p-2.5 rounded-xl border border-surface-700 bg-surface-750 flex items-center space-x-2">
+            <span class="step-icon text-gray-500">○</span>
+            <div class="truncate">
+              <p class="font-semibold text-gray-200">DiffParser</p>
+              <p class="text-[10px] text-gray-400 truncate">Hunks & lines</p>
+            </div>
+          </div>
+          <div id="step-syntax" class="p-2.5 rounded-xl border border-surface-700 bg-surface-750 flex items-center space-x-2">
+            <span class="step-icon text-gray-500">○</span>
+            <div class="truncate">
+              <p class="font-semibold text-gray-200">SyntaxCheck</p>
+              <p class="text-[10px] text-gray-400 truncate">AST / brackets</p>
+            </div>
+          </div>
+          <div id="step-security" class="p-2.5 rounded-xl border border-surface-700 bg-surface-750 flex items-center space-x-2">
+            <span class="step-icon text-gray-500">○</span>
+            <div class="truncate">
+              <p class="font-semibold text-gray-200">SecurityScan</p>
+              <p class="text-[10px] text-gray-400 truncate">Secrets / SQLi</p>
+            </div>
+          </div>
+          <div id="step-ai" class="p-2.5 rounded-xl border border-surface-700 bg-surface-750 flex items-center space-x-2">
+            <span class="step-icon text-gray-500">○</span>
+            <div class="truncate">
+              <p class="font-semibold text-gray-200">GeminiSynthesis</p>
+              <p class="text-[10px] text-gray-400 truncate">Structured Zod</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty State Placeholder -->
+      <div id="placeholder-view" class="bg-surface-800 border border-surface-700 rounded-2xl p-12 text-center flex-1 flex flex-col items-center justify-center shadow-sm">
+        <div class="h-16 w-16 rounded-2xl bg-surface-750 border border-surface-600 flex items-center justify-center text-3xl mb-4">
+          🔍
+        </div>
+        <h3 class="text-base font-bold text-gray-200 mb-1">No Code Change Analyzed Yet</h3>
+        <p class="text-xs text-gray-400 max-w-md mb-6">
+          Click any preset button above (Python, React 19, or C# / .NET) or paste your own git diff to run the multi-tool autonomous AI review agent.
+        </p>
+        <button onclick="loadSample('python'); triggerReview();" class="text-xs font-semibold px-4 py-2 rounded-xl bg-surface-700 hover:bg-surface-600 text-blue-400 border border-blue-500/20 transition">
+          🚀 Run Quick Demo on Python Sample
+        </button>
+      </div>
+
+      <!-- Results View Container (Hidden initially) -->
+      <div id="results-view" class="hidden flex-1 flex flex-col space-y-4">
+        
+        <!-- Summary Executive Card -->
+        <div class="bg-surface-800 border border-surface-700 rounded-2xl p-5 shadow-sm">
+          <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-surface-700">
+            <div class="flex items-center space-x-3">
+              <span id="verdict-pill" class="text-xs font-extrabold uppercase px-3 py-1.5 rounded-xl tracking-wider">
+                CHANGES REQUESTED
+              </span>
+              <div>
+                <span class="text-xs text-gray-400">Quality Score</span>
+                <div class="flex items-baseline space-x-1">
+                  <span id="score-value" class="text-2xl font-black text-white">40</span>
+                  <span class="text-xs text-gray-400">/ 100</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Stats badges & Export Buttons -->
+            <div class="flex items-center space-x-2">
+              <div class="hidden sm:flex items-center space-x-2 text-xs text-gray-300 font-mono px-3 py-1.5 rounded-xl bg-surface-750 border border-surface-600">
+                <span id="badge-files">1 File</span>
+                <span class="text-gray-500">&bull;</span>
+                <span id="badge-additions" class="text-emerald-400">+43</span>
+                <span id="badge-deletions" class="text-rose-400">-0</span>
+                <span class="text-gray-500">&bull;</span>
+                <span id="badge-duration" class="text-blue-400">3.8s</span>
+              </div>
+              <button onclick="copyMarkdownReport()" class="p-2 rounded-xl bg-surface-750 hover:bg-surface-700 border border-surface-600 text-gray-300 hover:text-white transition" title="Copy Markdown Report">
+                📋
+              </button>
+              <button onclick="downloadJsonReport()" class="p-2 rounded-xl bg-surface-750 hover:bg-surface-700 border border-surface-600 text-gray-300 hover:text-white transition" title="Download JSON">
+                💾
+              </button>
+            </div>
+          </div>
+
+          <!-- Overview Prose -->
+          <div class="mt-3.5">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Executive Summary</h4>
+            <p id="overview-text" class="text-xs text-gray-300 leading-relaxed"></p>
+          </div>
+        </div>
+
+        <!-- Findings Tabs & Content -->
+        <div class="bg-surface-800 border border-surface-700 rounded-2xl flex-1 flex flex-col shadow-sm overflow-hidden">
+          
+          <!-- Tab Navigation -->
+          <div class="flex border-b border-surface-700 bg-surface-750/50 px-4 text-xs font-semibold">
+            <button onclick="switchFindingTab('bugs')" id="tab-btn-bugs" class="finding-tab py-3 px-3.5 border-b-2 border-red-500 text-white flex items-center gap-1.5">
+              <span>🐛 Possible Bugs</span>
+              <span id="count-bugs" class="px-1.5 py-0.5 rounded-full text-[10px] bg-red-500/20 text-red-400 font-bold">0</span>
+            </button>
+            <button onclick="switchFindingTab('risks')" id="tab-btn-risks" class="finding-tab py-3 px-3.5 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-1.5">
+              <span>⚠️ Risks & Security</span>
+              <span id="count-risks" class="px-1.5 py-0.5 rounded-full text-[10px] bg-purple-500/20 text-purple-400 font-bold">0</span>
+            </button>
+            <button onclick="switchFindingTab('tests')" id="tab-btn-tests" class="finding-tab py-3 px-3.5 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-1.5">
+              <span>🧪 Missing Tests</span>
+              <span id="count-tests" class="px-1.5 py-0.5 rounded-full text-[10px] bg-blue-500/20 text-blue-400 font-bold">0</span>
+            </button>
+            <button onclick="switchFindingTab('style')" id="tab-btn-style" class="finding-tab py-3 px-3.5 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-1.5">
+              <span>🎨 Style & Clean Code</span>
+              <span id="count-style" class="px-1.5 py-0.5 rounded-full text-[10px] bg-gray-500/20 text-gray-400 font-bold">0</span>
+            </button>
+          </div>
+
+          <!-- Tab Panels Container -->
+          <div class="p-5 flex-1 overflow-y-auto custom-scrollbar max-h-[500px]">
+            
+            <!-- Panel: Bugs -->
+            <div id="panel-bugs" class="space-y-3.5"></div>
+
+            <!-- Panel: Risks -->
+            <div id="panel-risks" class="hidden space-y-3.5"></div>
+
+            <!-- Panel: Tests -->
+            <div id="panel-tests" class="hidden space-y-3.5"></div>
+
+            <!-- Panel: Style -->
+            <div id="panel-style" class="hidden space-y-3.5"></div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-6 right-6 px-4 py-2.5 rounded-xl bg-surface-750 border border-surface-600 text-xs text-white shadow-2xl opacity-0 transition-opacity duration-300 pointer-events-none z-50 flex items-center gap-2">
+    <span id="toast-icon">✓</span>
+    <span id="toast-msg">Copied to clipboard</span>
+  </div>
+
+  <script>
+    let currentFeedbackData = null;
+    let sampleDiffsCache = {};
+
+    // Fetch available sample diffs on boot
+    async function initSamples() {
+      try {
+        const res = await fetch('/api/sample-diffs');
+        const json = await res.json();
+        if (json.success && json.samples) {
+          json.samples.forEach(s => {
+            sampleDiffsCache[s.id] = s;
+          });
+        }
+      } catch (err) {
+        console.warn('Could not fetch sample diffs from server:', err);
+      }
+    }
+    initSamples();
+
+    function switchInputMode(mode) {
+      const isDiff = mode === 'diff';
+      document.getElementById('tab-diff').className = isDiff
+        ? 'text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-600 text-white shadow'
+        : 'text-xs font-semibold px-3 py-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-surface-700 transition';
+      document.getElementById('tab-pr').className = !isDiff
+        ? 'text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-600 text-white shadow'
+        : 'text-xs font-semibold px-3 py-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-surface-700 transition';
+
+      document.getElementById('diff-input-container').style.display = isDiff ? 'flex' : 'none';
+      document.getElementById('pr-input-container').style.display = !isDiff ? 'block' : 'none';
+    }
+
+    function clearInput() {
+      document.getElementById('diff-text-input').value = '';
+      document.getElementById('pr-url-input').value = '';
+      document.querySelectorAll('.sample-btn').forEach(b => b.classList.remove('ring-2', 'ring-blue-500'));
+    }
+
+    function loadSample(sampleId) {
+      const sample = sampleDiffsCache[sampleId];
+      if (sample) {
+        switchInputMode('diff');
+        document.getElementById('diff-text-input').value = sample.diff;
+        
+        document.querySelectorAll('.sample-btn').forEach(b => b.classList.remove('ring-2', 'ring-blue-500'));
+        const activeBtn = document.getElementById(`btn-sample-${sampleId}`);
+        if (activeBtn) activeBtn.classList.add('ring-2', 'ring-blue-500');
+
+        showToast(`Loaded ${sample.name}`);
+      }
+    }
+
+    async function triggerReview() {
+      const diffText = document.getElementById('diff-text-input').value.trim();
+      const prUrl = document.getElementById('pr-url-input').value.trim();
+      const customInstructions = document.getElementById('custom-instructions').value.trim();
+
+      if (!diffText && !prUrl) {
+        showToast('Please paste a diff or select a preset sample first', '⚠️');
+        return;
+      }
+
+      setLoading(true);
+      updateTelemetry('running');
+
+      try {
+        const response = await fetch('/api/review', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ diffText, prUrl, customInstructions })
+        });
+
+        const result = await response.json();
+        if (!result.success) {
+          throw new Error(result.error || 'Review request failed');
+        }
+
+        currentFeedbackData = result.data;
+        renderResults(result.data, result.durationMs);
+        updateTelemetry('complete');
+        showToast('Code review completed successfully!', '⚡');
+      } catch (err) {
+        alert('Review error: ' + err.message);
+        updateTelemetry('error');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function setLoading(isLoading) {
+      const btn = document.getElementById('btn-submit-review');
+      const spinner = document.getElementById('btn-spinner');
+      const label = document.getElementById('btn-label');
+
+      btn.disabled = isLoading;
+      spinner.classList.toggle('hidden', !isLoading);
+      label.textContent = isLoading ? 'Agent Analyzing Code Change...' : '⚡ Run Autonomous Code Review';
+    }
+
+    function updateTelemetry(state) {
+      const steps = ['step-diff', 'step-syntax', 'step-security', 'step-ai'];
+      const statusEl = document.getElementById('telemetry-status');
+
+      if (state === 'running') {
+        statusEl.textContent = 'Status: Agent Inspecting...';
+        steps.forEach((s, idx) => {
+          const el = document.getElementById(s);
+          setTimeout(() => {
+            el.querySelector('.step-icon').textContent = '●';
+            el.querySelector('.step-icon').className = 'step-icon text-blue-400 animate-pulse';
+          }, idx * 300);
+        });
+      } else if (state === 'complete') {
+        statusEl.textContent = 'Status: Complete (Strict JSON Verified)';
+        steps.forEach(s => {
+          const el = document.getElementById(s);
+          el.querySelector('.step-icon').textContent = '✔';
+          el.querySelector('.step-icon').className = 'step-icon text-emerald-400 font-bold';
+        });
+      } else {
+        statusEl.textContent = 'Status: Error';
+      }
+    }
+
+    function renderResults(data, durationMs) {
+      document.getElementById('placeholder-view').classList.add('hidden');
+      document.getElementById('results-view').classList.remove('hidden');
+
+      const { summary, bugs, risks, missingTests, styleIssues } = data;
+
+      // Verdict Pill
+      const pill = document.getElementById('verdict-pill');
+      if (summary.verdict === 'APPROVE') {
+        pill.className = 'text-xs font-extrabold uppercase px-3 py-1.5 rounded-xl tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+        pill.textContent = '✔ APPROVED';
+      } else if (summary.verdict === 'REQUEST_CHANGES') {
+        pill.className = 'text-xs font-extrabold uppercase px-3 py-1.5 rounded-xl tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/20';
+        pill.textContent = '✖ CHANGES REQUESTED';
+      } else {
+        pill.className = 'text-xs font-extrabold uppercase px-3 py-1.5 rounded-xl tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20';
+        pill.textContent = '💬 COMMENT';
+      }
+
+      // Score
+      document.getElementById('score-value').textContent = summary.score;
+      document.getElementById('badge-files').textContent = `${summary.filesAnalyzedCount} File${summary.filesAnalyzedCount > 1 ? 's' : ''}`;
+      document.getElementById('badge-additions').textContent = `+${summary.additionsCount}`;
+      document.getElementById('badge-deletions').textContent = `-${summary.deletionsCount}`;
+      document.getElementById('badge-duration').textContent = durationMs ? `${(durationMs / 1000).toFixed(1)}s` : '3.8s';
+
+      document.getElementById('overview-text').textContent = summary.overview;
+
+      // Counts
+      document.getElementById('count-bugs').textContent = bugs.length;
+      document.getElementById('count-risks').textContent = risks.length;
+      document.getElementById('count-tests').textContent = missingTests.length;
+      document.getElementById('count-style').textContent = styleIssues.length;
+
+      // Populate Panels
+      renderBugs(bugs);
+      renderRisks(risks);
+      renderTests(missingTests);
+      renderStyle(styleIssues);
+
+      // Default active tab to bugs (or risks if bugs 0)
+      switchFindingTab(bugs.length > 0 ? 'bugs' : 'risks');
+    }
+
+    function renderBugs(bugs) {
+      const panel = document.getElementById('panel-bugs');
+      if (bugs.length === 0) {
+        panel.innerHTML = '<div class="text-xs text-gray-500 italic p-4 text-center">No logical bugs flagged.</div>';
+        return;
+      }
+      panel.innerHTML = bugs.map(b => `
+        <div class="bg-surface-750 border border-surface-600 rounded-xl p-4">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded ${b.severity === 'CRITICAL' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}">${b.severity}</span>
+              <h5 class="text-xs font-bold text-white">${escapeHtml(b.title)}</h5>
+            </div>
+            <span class="text-[11px] font-mono text-gray-400">${escapeHtml(b.file)}${b.line ? `:${b.line}` : ''}</span>
+          </div>
+          <p class="text-xs text-gray-300 mb-2.5 leading-relaxed">${escapeHtml(b.explanation)}</p>
+          ${b.suggestedFix ? `
+            <div class="mt-2">
+              <div class="flex items-center justify-between text-[11px] font-semibold text-gray-400 mb-1">
+                <span>Suggested Code Fix:</span>
+                <button onclick="copySnippet(this)" class="text-blue-400 hover:text-blue-300">Copy</button>
+              </div>
+              <pre class="bg-surface-900 border border-surface-700 rounded-lg p-3 text-[11px] font-mono text-emerald-300 overflow-x-auto custom-scrollbar"><code>${escapeHtml(b.suggestedFix)}</code></pre>
+            </div>
+          ` : ''}
+        </div>
+      `).join('');
+    }
+
+    function renderRisks(risks) {
+      const panel = document.getElementById('panel-risks');
+      if (risks.length === 0) {
+        panel.innerHTML = '<div class="text-xs text-gray-500 italic p-4 text-center">No critical security or architecture risks flagged.</div>';
+        return;
+      }
+      panel.innerHTML = risks.map(r => `
+        <div class="bg-surface-750 border border-surface-600 rounded-xl p-4">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30">${r.riskType}</span>
+              <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-surface-600 text-gray-300">${r.severity}</span>
+              <h5 class="text-xs font-bold text-white">${escapeHtml(r.title)}</h5>
+            </div>
+            <span class="text-[11px] font-mono text-gray-400">${escapeHtml(r.file)}</span>
+          </div>
+          <div class="space-y-1.5 text-xs">
+            <p><span class="text-gray-400 font-semibold">Impact:</span> <span class="text-gray-200">${escapeHtml(r.impact)}</span></p>
+            <p><span class="text-emerald-400 font-semibold">Mitigation:</span> <span class="text-gray-200">${escapeHtml(r.mitigation)}</span></p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderTests(tests) {
+      const panel = document.getElementById('panel-tests');
+      if (tests.length === 0) {
+        panel.innerHTML = '<div class="text-xs text-gray-500 italic p-4 text-center">No test coverage gaps identified.</div>';
+        return;
+      }
+      panel.innerHTML = tests.map(t => `
+        <div class="bg-surface-750 border border-surface-600 rounded-xl p-4">
+          <div class="flex items-center justify-between gap-2 mb-1.5">
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded ${t.priority === 'HIGH' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'}">PRIORITY: ${t.priority}</span>
+              <h5 class="text-xs font-bold text-white font-mono">${escapeHtml(t.featureOrFunction)}</h5>
+            </div>
+            <span class="text-[11px] font-mono text-gray-400">${escapeHtml(t.targetFile)}</span>
+          </div>
+          <p class="text-xs text-gray-300 mb-2"><span class="text-gray-400 font-semibold">Scenario:</span> ${escapeHtml(t.scenario)}</p>
+          ${t.suggestedAssertion ? `
+            <div class="bg-surface-900 border border-surface-700 rounded-lg p-2.5 text-[11px] font-mono text-blue-300">
+              <span class="text-gray-500 select-none">// Recommended assertion: </span>${escapeHtml(t.suggestedAssertion)}
+            </div>
+          ` : ''}
+        </div>
+      `).join('');
+    }
+
+    function renderStyle(style) {
+      const panel = document.getElementById('panel-style');
+      if (style.length === 0) {
+        panel.innerHTML = '<div class="text-xs text-gray-500 italic p-4 text-center">No style violations found. Clean code!</div>';
+        return;
+      }
+      panel.innerHTML = style.map(s => `
+        <div class="bg-surface-750 border border-surface-600 rounded-xl p-3.5 flex items-start justify-between gap-3 text-xs">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-surface-600 text-gray-300">${s.convention}</span>
+              <span class="font-bold text-gray-200">${escapeHtml(s.issue)}</span>
+            </div>
+            <p class="text-gray-400">${escapeHtml(s.recommendation)}</p>
+          </div>
+          <span class="text-[11px] font-mono text-gray-500 whitespace-nowrap">${escapeHtml(s.file)}${s.line ? `:${s.line}` : ''}</span>
+        </div>
+      `).join('');
+    }
+
+    function switchFindingTab(tab) {
+      const tabs = ['bugs', 'risks', 'tests', 'style'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        const panel = document.getElementById(`panel-${t}`);
+        const isActive = t === tab;
+
+        panel.classList.toggle('hidden', !isActive);
+        btn.className = isActive
+          ? 'finding-tab py-3 px-3.5 border-b-2 border-blue-500 text-white flex items-center gap-1.5'
+          : 'finding-tab py-3 px-3.5 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-1.5';
+      });
+    }
+
+    function copySnippet(btn) {
+      const code = btn.closest('div').nextElementSibling.innerText;
+      navigator.clipboard.writeText(code);
+      showToast('Code fix copied to clipboard!');
+    }
+
+    function copyMarkdownReport() {
+      if (!currentFeedbackData) return;
+      const { summary, bugs, risks, missingTests, styleIssues } = currentFeedbackData;
+      const md = `# DiffSensei Code Review Report\\n\\n**Verdict:** \`${summary.verdict}\` | **Score:** ${summary.score}/100\\n\\n## Summary\\n${summary.overview}\\n\\n## Bugs (${bugs.length})\\n${bugs.map(b => `- [${b.severity}] **${b.title}** (${b.file}): ${b.explanation}`).join('\\n')}\\n\\n## Risks (${risks.length})\\n${risks.map(r => `- [${r.riskType}] **${r.title}**: ${r.impact}`).join('\\n')}`;
+      navigator.clipboard.writeText(md);
+      showToast('Markdown report copied!');
+    }
+
+    function downloadJsonReport() {
+      if (!currentFeedbackData) return;
+      const blob = new Blob([JSON.stringify(currentFeedbackData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `DiffSensei-Review-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function showToast(msg, icon = '✓') {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-msg').textContent = msg;
+      document.getElementById('toast-icon').textContent = icon;
+      toast.classList.remove('opacity-0');
+      setTimeout(() => toast.classList.add('opacity-0'), 2500);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>

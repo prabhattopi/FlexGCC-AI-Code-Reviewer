@@ -1,0 +1,47 @@
+diff --git a/src/components/MetricWidget.tsx b/src/components/MetricWidget.tsx
+new file mode 100644
+index 0000000..f3b8901
+--- /dev/null
++++ b/src/components/MetricWidget.tsx
+@@ -0,0 +1,42 @@
++import React, { useState, useEffect } from 'react';
++
++interface MetricWidgetProps {
++  endpointUrl: string;
++  rawHtmlDisclaimer?: string;
++}
++
++export function MetricWidget({ endpointUrl, rawHtmlDisclaimer }: MetricWidgetProps) {
++  const [metrics, setMetrics] = useState<any>(null);
++  const [error, setError] = useState<string | null>(null);
++
++  useEffect(() => {
++    // BUG: setInterval without cleanup function creates unbounded memory leak on unmount
++    const intervalId = setInterval(async () => {
++      try {
++        const res = await fetch(endpointUrl);
++        const data = await res.json();
++        console.log("Fetched live metrics:", data); // STYLE: Debug log in production
++        setMetrics(data);
++      } catch (err: any) {
++        setError(err.message);
++      }
++    }, 3000);
++  }, [endpointUrl]);
++
++  return (
++    <div className="p-4 border rounded shadow">
++      <h3 className="font-bold text-lg">System Metrics</h3>
++      {error && <div className="text-red-500">Error: {error}</div>}
++      {metrics && <div>CPU Usage: {metrics.cpu}%</div>}
++      
++      {/* SECURITY RISK: XSS vulnerability through unsanitized dangerouslySetInnerHTML */}
++      {rawHtmlDisclaimer && (
++        <div 
++          className="text-xs text-gray-500 mt-2"
++          dangerouslySetInnerHTML={{ __html: rawHtmlDisclaimer }} 
++        />
++      )}
++    </div>
++  );
++}
