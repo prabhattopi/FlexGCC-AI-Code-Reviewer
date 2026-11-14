@@ -2,47 +2,64 @@
 
 > **FlexGCC AI Engineer Practical Exercise**  
 > **Candidate:** Prabhat Ranjan Singh (`topi9864@gmail.com` | [GitHub](https://github.com/prabhattopi) | [LinkedIn](https://www.linkedin.com/in/prabhat-ranjan-singh-71296721b/))  
-> **Tech Stack:** Node.js, TypeScript, Fastify, Google Gemini Flash (`@google/generative-ai`), Zod, Tailwind CSS
+> **Full-Stack Architecture:** React 19, Tailwind CSS v4, Node.js, Fastify, TypeScript, Google Gemini Flash, Zod
 
 ---
 
 ## 1. What It Does
 
-**DiffSensei** is an autonomous AI agent that ingests a code change (a Git diff, `.patch` file, or live GitHub Pull Request URL) and returns **strict structured engineering feedback**:
+**DiffSensei** is an autonomous full-stack AI agent that ingests a code change (Git diff, `.patch` file, or live GitHub Pull Request URL) and returns **strict, structured engineering feedback**:
 
-* 🐛 **Possible Bugs:** Detects runtime exceptions, null-pointer dereferences, off-by-one errors, and unhandled promise/async anti-patterns—accompanied by exact file/line citations and copyable code fixes.
-* ⚠️ **Risks & Security:** Evaluates security vulnerabilities (SQL injection, XSS, token leakage), breaking API changes, data integrity concerns, and concurrency hazards with concrete mitigation steps.
+* 🐛 **Possible Bugs:** Detects runtime exceptions, null-pointer dereferences, off-by-one errors, conditional assignment bugs (`if (x = 0)`), and async anti-patterns (`async void`)—complete with file/line citations and copyable code fixes.
+* ⚠️ **Risks & Security:** Evaluates security vulnerabilities (SQL injection, XSS via `dangerouslySetInnerHTML`, credential leakage), breaking API changes, data integrity concerns, and concurrency hazards with concrete mitigation steps.
 * 🧪 **Missing Tests:** Analyzes business logic additions vs PR test coverage to flag uncovered edge cases, boundary conditions, and provides copyable test assertions.
-* 🎨 **Style & Clean Code:** Surfaces naming conventions, dead code, leftover debug statements, and architecture violations.
+* 🎨 **Style & Clean Code:** Surfaces naming conventions, dead code, leftover debug statements (`console.log`, `print()`), and architectural clean-code violations.
 * 📊 **Quality Score & Verdict:** Issues an automated decision (`APPROVED`, `REQUEST_CHANGES`, `COMMENT`) alongside an overall code health score (0–100).
 
-The system operates across both an **interactive Web UI Dashboard** and a **standalone CLI runner** (`pnpm review`).
+The application is engineered as a **monorepo** featuring:
+1. **Interactive Frontend (`frontend/`):** Built with **React 19**, **Tailwind CSS v4**, **TypeScript**, and **Vite**, featuring a component-driven dashboard, live multi-tool telemetry visualizer, 1-click sample presets, and copyable fix widgets.
+2. **High-Performance Backend (`backend/`):** Built with **Node.js**, **Fastify**, **TypeScript**, and **Google Gemini Flash**, orchestrating 4 deterministic inspection tools with strict Zod schema validation.
+3. **Standalone CLI Runner:** Run directly in any CI/CD or terminal via `pnpm review`.
 
 ---
 
-## 2. How It Was Built
+## 2. Full-Stack System Architecture
 
 ```
-                  ┌──────────────────────────────────────────────┐
-                  │    INPUT: Git Diff / Patch / GitHub PR URL   │
-                  └──────────────────────┬───────────────────────┘
-                                         ▼
+                                  USER INTERFACE
+         ┌───────────────────────────────────────────────────────────────┐
+         │     REACT 19 + TAILWIND CSS v4 DASHBOARD (frontend/)          │
+         │  • Header with Candidate Info & Model Telemetry               │
+         │  • 1-Click Preset Loaders (Python, React 19, C# / .NET)        │
+         │  • Diff Editor / GitHub PR URL Fetcher                        │
+         │  • Interactive Finding Tabs (Bugs, Risks, Tests, Style)       │
+         │  • 1-Click Copy Fixes & Markdown/JSON Exporters               │
+         └──────────────────────────────┬────────────────────────────────┘
+                                        │ HTTP REST (Fastify API)
+                                        ▼
+         ┌───────────────────────────────────────────────────────────────┐
+         │             FASTIFY SERVER ENGINE (backend/)                  │
+         │  • POST /api/review          • GET /api/sample-diffs          │
+         │  • GET  /api/health          • Static Single-Page App Hosting │
+         └──────────────────────────────┬────────────────────────────────┘
+                                        │
+                                        ▼
          ┌───────────────────────────────────────────────────────────────┐
          │             PHASE 1: DETERMINISTIC AGENT TOOLS                │
-         │  • diffParser         -> Hunk parsing & +/- line index        │
+         │  • diffParser         -> Hunk parsing & +/- line indexing     │
          │  • syntaxChecker      -> Brackets balance & AST sanity        │
          │  • securityScanner    -> RegEx/AST patterns for SQLi, secrets │
          │  • testGapAnalyzer    -> Core logic vs PR test coverage       │
-         └──────────────────────┬────────────────────────────────────────┘
-                                │ Pre-computed Tool Signals
-                                ▼
+         └──────────────────────────────┬────────────────────────────────┘
+                                        │ Pre-computed Tool Signals
+                                        ▼
          ┌───────────────────────────────────────────────────────────────┐
          │          PHASE 2: LLM REASONING & SYNTHESIS (GEMINI)          │
          │  • Model: Google Gemini Flash via @google/generative-ai       │
          │  • Config: responseMimeType: 'application/json', temp: 0.1    │
          │  • Schema Enforcement: Zod validation on incoming JSON payload│
-         └──────────────────────┬────────────────────────────────────────┘
-                                ▼
+         └──────────────────────────────┬────────────────────────────────┘
+                                        ▼
          ┌───────────────────────────────────────────────────────────────┐
          │              OUTPUT: STRICT STRUCTURED FEEDBACK               │
          │  • Web Dashboard (Live Telemetry, Cards, Markdown Export)     │
@@ -50,16 +67,12 @@ The system operates across both an **interactive Web UI Dashboard** and a **stan
          └───────────────────────────────────────────────────────────────┘
 ```
 
-* **Core Framework:** **Fastify + TypeScript** for ultra-low latency REST endpoints (`POST /api/review`, `GET /api/sample-diffs`, `GET /api/health`) and static single-page app serving.
-* **LLM & Reasoning:** **Google Gemini Flash** (`gemini-2.0-flash` / `gemini-2.5-flash`), configured with `responseMimeType: "application/json"` and `temperature: 0.1` for near-deterministic code analysis.
-* **Tool Calling Mechanism:** 
-  1. `diffParser`: Deconstructs unified diffs into structured file objects, change hunks, and line maps.
-  2. `syntaxChecker`: Inspects unbalanced syntax structures, conditional assignments (`if (x = 0)`), and language anti-patterns (`async void`).
-  3. `securityScanner`: Deterministically scans for hardcoded tokens, SQL string concatenations, dangerous evals, and unescaped HTML.
-  4. `testGapAnalyzer`: Compares modified functions against the diff to flag missing test suites before hitting the LLM.
-  The pre-computed signals are injected directly into the agent's prompt context, allowing the LLM to cross-examine static findings with semantic reasoning.
-* **Schema Validation:** Strict **Zod schemas** validate the agent's output at runtime. A built-in sanitizer ensures malformed markdown code fences do not disrupt JSON parsing.
-* **Deterministic Fallback Engine:** If the external LLM is unreachable or offline, the agent gracefully degrades to a deterministic rule-based evaluation engine without crashing.
+### Key Technical Decisions:
+* **React 19 & Tailwind CSS v4:** Utilizes modern React 19 hooks and state management with the new lightning-fast Tailwind CSS v4 engine (`@tailwindcss/vite`), offering clean dark-mode visuals and responsive split-pane layout.
+* **Fastify & TypeScript:** Provides low-overhead asynchronous request handling with built-in schema validation and static asset hosting.
+* **Deterministic Tool Layer:** Before making LLM calls, 4 dedicated static tools run to extract hard signals (AST syntax issues, credentials, SQL string interpolations, missing test coverage).
+* **Guaranteed Schema Enforcement:** Output is strictly typed with Zod (`StructuredReviewFeedbackSchema`). Any malformed markdown blocks are cleansed by `sanitizeJsonResponse()`.
+* **Zero-Crash Offline Fallback:** If the external LLM encounters network boundaries or rate limits, the agent automatically falls back to `generateDeterministicFallback()` using static tool signals.
 
 ---
 
@@ -95,24 +108,42 @@ The system operates across both an **interactive Web UI Dashboard** and a **stan
 
 ### 1. Installation
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/prabhattopi/FlexGCC-AI-Code-Reviewer.git
 cd FlexGCC-AI-Code-Reviewer
 pnpm install
 ```
 
 ### 2. Environment Setup
+Create `.env` in `backend/` (or copy from `.env.example`):
 ```bash
-cp .env.example .env
-# Edit .env and paste your GEMINI_API_KEY
+cp .env.example backend/.env
+# Edit backend/.env and paste your GEMINI_API_KEY
 ```
 
-### 3. Running the Web UI Dashboard
+### 3. Running in Development Mode
+You can run both backend and frontend concurrently:
+
+**Terminal 1 (Backend - Fastify API):**
 ```bash
-pnpm dev
-# Open http://localhost:3000 in your browser
+pnpm dev:backend
+# API running on http://localhost:3000
 ```
 
-### 4. Running the CLI Runner
+**Terminal 2 (Frontend - React 19 + Tailwind v4):**
+```bash
+pnpm dev:frontend
+# Vite running on http://localhost:5173 (auto-proxies /api to Fastify)
+```
+
+### 4. Running Unified Production Build
+Build the React 19 app and run the unified Fastify server:
+```bash
+pnpm build
+pnpm start
+# Opens complete full-stack app at http://localhost:3000
+```
+
+### 5. Running the CLI Runner
 ```bash
 # Review preset sample diffs
 pnpm review --sample python
