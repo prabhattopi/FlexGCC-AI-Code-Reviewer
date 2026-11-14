@@ -2,6 +2,7 @@ import fastify, { FastifyInstance } from "fastify";
 import cors from "@fastify/cors";
 import fastifyStatic from "@fastify/static";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import { CodeReviewAgent } from "./agent.js";
 import { SAMPLE_DIFFS } from "./sampleDiffs.js";
@@ -11,15 +12,7 @@ const __dirname = path.dirname(__filename);
 
 export async function buildServer(): Promise<FastifyInstance> {
   const app = fastify({
-    logger: {
-      transport: {
-        target: "pino-pretty",
-        options: {
-          translateTime: "HH:MM:ss Z",
-          ignore: "pid,hostname",
-        },
-      },
-    },
+    logger: true,
   });
 
   // Enable CORS
@@ -28,12 +21,14 @@ export async function buildServer(): Promise<FastifyInstance> {
     methods: ["GET", "POST", "OPTIONS"],
   });
 
-  // Serve Static Frontend Dashboard
+  // Serve Static Frontend Dashboard if built
   const publicPath = path.join(__dirname, "../public");
-  await app.register(fastifyStatic, {
-    root: publicPath,
-    prefix: "/",
-  });
+  if (fs.existsSync(publicPath)) {
+    await app.register(fastifyStatic, {
+      root: publicPath,
+      prefix: "/",
+    });
+  }
 
   const agent = new CodeReviewAgent();
 
