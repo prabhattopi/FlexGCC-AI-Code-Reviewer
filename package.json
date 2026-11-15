@@ -5,6 +5,7 @@
   "description": "Full-Stack Autonomous AI Code Review Agent (React 19 + Tailwind v4 + Fastify + TypeScript)",
   "author": "Prabhat Ranjan Singh <topi9864@gmail.com>",
   "license": "MIT",
+  "packageManager": "pnpm@9.12.2",
   "scripts": {
     "dev:backend": "pnpm --filter ./backend dev",
     "dev:frontend": "pnpm --filter ./frontend dev",
