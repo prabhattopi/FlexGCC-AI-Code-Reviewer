@@ -1,7 +1,7 @@
 {
   "framework": "vite",
   "buildCommand": "vite build",
-  "outputDirectory": "../backend/public",
+  "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/api/(.*)",

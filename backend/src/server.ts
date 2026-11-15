@@ -22,7 +22,12 @@ export async function buildServer(): Promise<FastifyInstance> {
   });
 
   // Serve Static Frontend Dashboard if built
-  const publicPath = path.join(__dirname, "../public");
+  const publicPath = fs.existsSync(path.join(__dirname, "../public/index.html"))
+    ? path.join(__dirname, "../public")
+    : fs.existsSync(path.join(__dirname, "../../frontend/dist/index.html"))
+    ? path.join(__dirname, "../../frontend/dist")
+    : path.join(__dirname, "../public");
+
   if (fs.existsSync(publicPath)) {
     await app.register(fastifyStatic, {
       root: publicPath,
