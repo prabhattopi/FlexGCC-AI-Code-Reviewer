@@ -4,8 +4,8 @@ services:
     runtime: node
     plan: free
     region: oregon
-    buildCommand: pnpm install --no-frozen-lockfile && pnpm build
-    startCommand: pnpm start
+    buildCommand: pnpm --filter ./backend build
+    startCommand: pnpm --filter ./backend start
     envVars:
       - key: NODE_ENV
         value: production
